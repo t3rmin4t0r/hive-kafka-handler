@@ -151,10 +151,10 @@ public class KafkaPullerInputFormat extends InputFormat<NullWritable, KafkaRecor
         LOG.info("Kafka trimmer working on Filter tree {}", filterExpr.getExprString());
         Callable<List<KafkaPullerInputSplit>>
             trimmerWorker = () -> kafkaScanTrimmer.computeOptimizedScan(filterExpr)
-                .entrySet()
-                .stream()
-                .map(Map.Entry::getValue)
-                .collect(Collectors.toList());
+            .entrySet()
+            .stream()
+            .map(Map.Entry::getValue)
+            .collect(Collectors.toList());
 
         Future<List<KafkaPullerInputSplit>> futureTinyHouse = execService.submit(trimmerWorker);
         try {
