@@ -1,5 +1,10 @@
 # hive-kafka-handler
 
+## Send Fake Data to Kafka Broker
+Use https://github.com/b-slim/avro-kafka-producer.
+
+## Create Table External Table
+
     ADD JAR target/kafka-handler-4.0.0-SNAPSHOT.jar;
     
     
