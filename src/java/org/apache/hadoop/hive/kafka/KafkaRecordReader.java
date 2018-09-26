@@ -36,14 +36,14 @@ import java.util.Properties;
 /**
  * Kafka Records Reader implementation.
  */
-@SuppressWarnings("UnstableApiUsage") public class KafkaPullerRecordReader extends RecordReader<NullWritable, KafkaRecordWritable>
-    implements org.apache.hadoop.mapred.RecordReader<NullWritable, KafkaRecordWritable> {
+@SuppressWarnings("WeakerAccess") public class KafkaRecordReader extends RecordReader<NullWritable, KafkaWritable>
+    implements org.apache.hadoop.mapred.RecordReader<NullWritable, KafkaWritable> {
 
-  private static final Logger LOG = LoggerFactory.getLogger(KafkaPullerRecordReader.class);
+  private static final Logger LOG = LoggerFactory.getLogger(KafkaRecordReader.class);
 
   private KafkaConsumer<byte[], byte[]> consumer = null;
   private Configuration config = null;
-  private KafkaRecordWritable currentWritableValue;
+  private KafkaWritable currentWritableValue;
   private Iterator<ConsumerRecord<byte[], byte[]>> recordsCursor = null;
 
   private long totalNumberRecords = 0L;
@@ -53,13 +53,13 @@ import java.util.Properties;
   private long startOffset = -1L;
   private long endOffset = Long.MAX_VALUE;
 
-  @SuppressWarnings("WeakerAccess") public KafkaPullerRecordReader() {
+  @SuppressWarnings("WeakerAccess") public KafkaRecordReader() {
   }
 
   private void initConsumer() {
     if (consumer == null) {
       LOG.info("Initializing Kafka Consumer");
-      final Properties properties = KafkaStreamingUtils.consumerProperties(config);
+      final Properties properties = KafkaUtils.consumerProperties(config);
       String brokerString = properties.getProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG);
       Preconditions.checkNotNull(brokerString, "broker end point can not be null");
       LOG.info("Starting Consumer with Kafka broker string [{}]", brokerString);
@@ -67,40 +67,40 @@ import java.util.Properties;
     }
   }
 
-  @SuppressWarnings("WeakerAccess") public KafkaPullerRecordReader(KafkaPullerInputSplit inputSplit,
+  @SuppressWarnings("WeakerAccess") public KafkaRecordReader(KafkaInputSplit inputSplit,
       Configuration jobConf) {
     initialize(inputSplit, jobConf);
   }
 
-  private synchronized void initialize(KafkaPullerInputSplit inputSplit, Configuration jobConf) {
+  private synchronized void initialize(KafkaInputSplit inputSplit, Configuration jobConf) {
     if (!started) {
       this.config = jobConf;
       startOffset = inputSplit.getStartOffset();
       endOffset = inputSplit.getEndOffset();
       TopicPartition topicPartition = new TopicPartition(inputSplit.getTopic(), inputSplit.getPartition());
       Preconditions.checkState(startOffset >= 0 && startOffset <= endOffset,
-          "Start [%s] has to be positive and less or equal than End [%s]", startOffset, endOffset);
+          "Start [%s] has to be positive and less or equal than End [%s]",
+          startOffset,
+          endOffset);
       totalNumberRecords += endOffset - startOffset;
       initConsumer();
       long
           pollTimeout =
-          config.getLong(KafkaStreamingUtils.HIVE_KAFKA_POLL_TIMEOUT,
-              KafkaStreamingUtils.DEFAULT_CONSUMER_POLL_TIMEOUT_MS);
+          config.getLong(KafkaTableProperties.KAFKA_POLL_TIMEOUT.getName(), -1);
       LOG.debug("Consumer poll timeout [{}] ms", pollTimeout);
       this.recordsCursor =
           startOffset == endOffset ?
-              new KafkaRecordIterator.EmptyIterator() :
+              new EmptyIterator() :
               new KafkaRecordIterator(consumer, topicPartition, startOffset, endOffset, pollTimeout);
       started = true;
     }
   }
 
-  @Override public void initialize(org.apache.hadoop.mapreduce.InputSplit inputSplit,
-      TaskAttemptContext context) {
-    initialize((KafkaPullerInputSplit) inputSplit, context.getConfiguration());
+  @Override public void initialize(org.apache.hadoop.mapreduce.InputSplit inputSplit, TaskAttemptContext context) {
+    initialize((KafkaInputSplit) inputSplit, context.getConfiguration());
   }
 
-  @Override public boolean next(NullWritable nullWritable, KafkaRecordWritable bytesWritable) {
+  @Override public boolean next(NullWritable nullWritable, KafkaWritable bytesWritable) {
     if (started && recordsCursor.hasNext()) {
       ConsumerRecord<byte[], byte[]> record = recordsCursor.next();
       bytesWritable.set(record, startOffset, endOffset);
@@ -115,8 +115,8 @@ import java.util.Properties;
     return NullWritable.get();
   }
 
-  @Override public KafkaRecordWritable createValue() {
-    return new KafkaRecordWritable();
+  @Override public KafkaWritable createValue() {
+    return new KafkaWritable();
   }
 
   @Override public long getPos() {
@@ -124,7 +124,7 @@ import java.util.Properties;
   }
 
   @Override public boolean nextKeyValue() {
-    currentWritableValue = new KafkaRecordWritable();
+    currentWritableValue = new KafkaWritable();
     if (next(NullWritable.get(), currentWritableValue)) {
       return true;
     }
@@ -136,7 +136,7 @@ import java.util.Properties;
     return NullWritable.get();
   }
 
-  @Override public KafkaRecordWritable getCurrentValue() {
+  @Override public KafkaWritable getCurrentValue() {
     return Preconditions.checkNotNull(currentWritableValue);
   }
 
@@ -155,6 +155,19 @@ import java.util.Properties;
     if (consumer != null) {
       consumer.wakeup();
       consumer.close();
+    }
+  }
+
+  /**
+   * Empty iterator for empty splits when startOffset == endOffset, this is added to avoid clumsy if condition.
+   */
+  private static final class EmptyIterator implements Iterator<ConsumerRecord<byte[], byte[]>> {
+    @Override public boolean hasNext() {
+      return false;
+    }
+
+    @Override public ConsumerRecord<byte[], byte[]> next() {
+      throw new IllegalStateException("this is an empty iterator");
     }
   }
 }
