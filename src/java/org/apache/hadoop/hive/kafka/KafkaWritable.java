@@ -18,6 +18,9 @@
 
 package org.apache.hadoop.hive.kafka;
 
+import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
@@ -35,7 +38,7 @@ import java.util.Objects;
  * {@code startOffset} (long) | {@code endOffset} (long) | {@code value.size()} (int) |
  * {@code value} (byte []) | {@code recordKey.size()}| {@code recordKey (byte [])}
  */
-public class KafkaRecordWritable implements Writable {
+public class KafkaWritable implements Writable {
 
   /**
    * Kafka partition id
@@ -46,11 +49,11 @@ public class KafkaRecordWritable implements Writable {
    */
   private long offset;
   /**
-   * Fist offset given by the input split used to pull the event {@link KafkaPullerInputSplit#getStartOffset()}
+   * Fist offset given by the input split used to pull the event {@link KafkaInputSplit#getStartOffset()}
    */
   private long startOffset;
   /**
-   * Last Offset given by the input split used to pull the event {@link KafkaPullerInputSplit#getEndOffset()}
+   * Last Offset given by the input split used to pull the event {@link KafkaInputSplit#getEndOffset()}
    */
   private long endOffset;
   /**
@@ -67,7 +70,6 @@ public class KafkaRecordWritable implements Writable {
    */
   private byte[] recordKey;
 
-
   void set(ConsumerRecord<byte[], byte[]> consumerRecord, long startOffset, long endOffset) {
     this.partition = consumerRecord.partition();
     this.timestamp = consumerRecord.timestamp();
@@ -78,7 +80,7 @@ public class KafkaRecordWritable implements Writable {
     this.endOffset = endOffset;
   }
 
-  KafkaRecordWritable(int partition,
+  KafkaWritable(int partition,
       long offset,
       long timestamp,
       byte[] value,
@@ -94,7 +96,11 @@ public class KafkaRecordWritable implements Writable {
     this.endOffset = endOffset;
   }
 
-  @SuppressWarnings("WeakerAccess") public KafkaRecordWritable() {
+  KafkaWritable(int partition, long timestamp, byte[] value, @Nullable byte[] recordKey) {
+    this(partition, -1, timestamp, value, -1, -1, recordKey);
+  }
+
+  @SuppressWarnings("WeakerAccess") public KafkaWritable() {
   }
 
   @Override public void write(DataOutput dataOutput) throws IOException {
@@ -139,7 +145,7 @@ public class KafkaRecordWritable implements Writable {
     return partition;
   }
 
-  long getOffset() {
+  @SuppressWarnings("WeakerAccess") long getOffset() {
     return offset;
   }
 
@@ -151,16 +157,15 @@ public class KafkaRecordWritable implements Writable {
     return value;
   }
 
-  long getStartOffset() {
+  @SuppressWarnings("WeakerAccess") long getStartOffset() {
     return startOffset;
   }
 
-  long getEndOffset() {
+  @SuppressWarnings("WeakerAccess") long getEndOffset() {
     return endOffset;
   }
 
-  @Nullable
-  byte[] getRecordKey() {
+  @Nullable byte[] getRecordKey() {
     return recordKey;
   }
 
@@ -168,10 +173,10 @@ public class KafkaRecordWritable implements Writable {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof KafkaRecordWritable)) {
+    if (!(o instanceof KafkaWritable)) {
       return false;
     }
-    KafkaRecordWritable writable = (KafkaRecordWritable) o;
+    KafkaWritable writable = (KafkaWritable) o;
     return partition == writable.partition
         && offset == writable.offset
         && startOffset == writable.startOffset
@@ -189,7 +194,7 @@ public class KafkaRecordWritable implements Writable {
   }
 
   @Override public String toString() {
-    return "KafkaRecordWritable{"
+    return "KafkaWritable{"
         + "partition="
         + partition
         + ", offset="
@@ -206,4 +211,24 @@ public class KafkaRecordWritable implements Writable {
         + Arrays.toString(recordKey)
         + '}';
   }
+
+  Writable getHiveWritable(MetadataColumn metadataColumn) {
+    switch (metadataColumn) {
+    case OFFSET:
+      return new LongWritable(getOffset());
+    case PARTITION:
+      return new IntWritable(getPartition());
+    case TIMESTAMP:
+      return new LongWritable(getTimestamp());
+    case KEY:
+      return getRecordKey() == null ? null : new BytesWritable(getRecordKey());
+    case START_OFFSET:
+      return new LongWritable(getStartOffset());
+    case END_OFFSET:
+      return new LongWritable(getEndOffset());
+    default:
+      throw new IllegalArgumentException("Unknown metadata column [" + metadataColumn.getName() + "]");
+    }
+  }
+
 }

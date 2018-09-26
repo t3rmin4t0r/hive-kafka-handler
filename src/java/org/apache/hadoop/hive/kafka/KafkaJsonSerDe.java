@@ -78,7 +78,7 @@ import java.util.stream.Collectors;
  * Basic JsonSerDe to make use of such storage handler smooth and easy and testing basic primitive Json.
  * For production please use Hive native JsonSerde.
  */
-public class KafkaJsonSerDe extends AbstractSerDe {
+@SuppressWarnings("unused") class KafkaJsonSerDe extends AbstractSerDe {
   private static final Logger LOG = LoggerFactory.getLogger(KafkaJsonSerDe.class);
   private static final ThreadLocal<DateTimeFormatter>
       TS_PARSER =
