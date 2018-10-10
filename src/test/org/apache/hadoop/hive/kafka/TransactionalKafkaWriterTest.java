@@ -203,6 +203,7 @@ public class TransactionalKafkaWriterTest {
         writer =
         new TransactionalKafkaWriter(TOPIC, null, properties, queryWorkingPath, fs, false);
 
+    //noinspection unused
     TransactionalKafkaWriter
         newWriter =
         new TransactionalKafkaWriter(TOPIC, null, properties, queryWorkingPath, fs, false);
