@@ -81,6 +81,7 @@ class KafkaBrokerResource extends ExternalResource {
     kafkaServer.startup();
     LOG.info("Creating kafka TOPIC [{}]", TOPIC);
     AdminUtils.createTopic(zkUtils, TOPIC, 1, 1, new Properties(), RackAwareMode.Disabled$.MODULE$);
+    Thread.sleep(5000);
   }
 
   /**
@@ -95,7 +96,6 @@ class KafkaBrokerResource extends ExternalResource {
     }
     if (kafkaServer != null) {
       kafkaServer.shutdown();
-      kafkaServer.zkUtils().close();
       kafkaServer.awaitShutdown();
     }
     zkServer.shutdown();

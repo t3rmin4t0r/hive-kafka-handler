@@ -10,7 +10,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectIn
 import org.apache.hadoop.io.Text;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 
-@Description(name = "kafka_version", value = "_FUNC_() - permanent function to keep the Kafka handler loaded")
+@SuppressWarnings({ "unused", "RedundantThrows" }) @Description(name = "kafka_version", value = "_FUNC_() - permanent function to keep the Kafka handler loaded")
 @UDFType(deterministic=false)
 public class GenericUDFKafkaVersion extends GenericUDF {
 
