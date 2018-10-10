@@ -5,7 +5,7 @@ Use https://github.com/b-slim/avro-kafka-producer.
 
 ## Create Table External Table
 
-    ADD JAR target/kafka-handler-4.0.0-SNAPSHOT.jar;
+    ADD JAR target/kafka-handler-4.0.1-SNAPSHOT.jar;
     
     
     CREATE EXTERNAL TABLE kafka_table_avro
@@ -81,10 +81,10 @@ Use https://github.com/b-slim/avro-kafka-producer.
 
 There is an llap feature which uploads all user functions along with the LLAP packaging, which can be used to preload this jar into LLAP on restarts.
 
-	hadoop fs -copyFromLocal target/kafka-handler-4.0.0-SNAPSHOT.jar  /tmp/kafka-handler-4.0.0-SNAPSHOT.jar 
+	hadoop fs -copyFromLocal target/kafka-handler-4.0.1-SNAPSHOT.jar  /tmp/kafka-handler-4.0.1-SNAPSHOT.jar 
 
 Then
 
-	beeline> CREATE FUNCTION loadkafka as 'org.apache.hadoop.hive.kafka.GenericUDFKafkaVersion'  USING JAR 'hdfs://tmp/kafka-handler-4.0.0-SNAPSHOT.jar'
+	beeline> CREATE FUNCTION loadkafka as 'org.apache.hadoop.hive.kafka.GenericUDFKafkaVersion'  USING JAR 'hdfs:////tmp/kafka-handler-4.0.1-SNAPSHOT.jar'
 	
 Restarting LLAP from Ambari will localize the kafka handler jar on all LLAP daemons.
